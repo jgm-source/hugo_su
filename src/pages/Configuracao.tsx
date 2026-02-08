@@ -32,6 +32,7 @@ export default function Configuracao() {
   const [copiedWebhook, setCopiedWebhook] = useState(false);
   const [credentialsId, setCredentialsId] = useState<number | null>(null);
   const [webhookUrl, setWebhookUrl] = useState<string>('');
+  const [linkInstrucao, setLinkInstrucao] = useState<string>('');
 
   useEffect(() => {
     fetchCredentials();
@@ -53,6 +54,7 @@ export default function Configuracao() {
           'Acess_Token': data['Acess_Token'] || '',
         });
         setWebhookUrl(data['Webhook'] || '');
+        setLinkInstrucao(data['Link_Instrucao'] || '');
         setCredentialsId(data.id);
       }
     } catch (error: any) {
@@ -258,6 +260,43 @@ export default function Configuracao() {
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Este campo é gerenciado diretamente no banco de dados
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Link de Instruções - Somente Leitura */}
+        {linkInstrucao && (
+          <Card className="animate-slide-up" style={{ animationDelay: '200ms' }}>
+            <CardHeader>
+              <CardTitle>Link de Instruções</CardTitle>
+              <CardDescription>
+                Acesse o guia de configuração e uso do sistema
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Input
+                    value={linkInstrucao}
+                    readOnly
+                    className="font-mono text-sm bg-muted cursor-not-allowed"
+                  />
+                </div>
+                <a
+                  href={linkInstrucao}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-block"
+                >
+                  <Button variant="outline" className="w-full sm:w-auto">
+                    <LinkIcon className="h-4 w-4 mr-2" />
+                    Abrir Instruções
+                  </Button>
+                </a>
+                <p className="text-xs text-muted-foreground">
+                  Este link é gerenciado diretamente no banco de dados
                 </p>
               </div>
             </CardContent>

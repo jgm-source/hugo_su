@@ -278,6 +278,8 @@ export default function Dashboard() {
   );
 }
 
+type EventTypeFilter = 'all' | 'lead' | 'purchase';
+
 function RecentEvents({ dateFilter, customDateFrom, customDateTo }: { 
   dateFilter: DateFilter;
   customDateFrom?: Date;
@@ -287,6 +289,7 @@ function RecentEvents({ dateFilter, customDateFrom, customDateTo }: {
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
+  const [eventTypeFilter, setEventTypeFilter] = useState<EventTypeFilter>('all');
   const itemsPerPage = 10;
 
   useEffect(() => {
@@ -309,10 +312,15 @@ function RecentEvents({ dateFilter, customDateFrom, customDateTo }: {
           .limit(100);
 
         // Combinar e ordenar todos os eventos
-        const allEvents = [
+        let allEvents = [
           ...(leadEvents || []).map(e => ({ ...e, type: 'lead' })),
           ...(purchaseEvents || []).map(e => ({ ...e, type: 'purchase' }))
         ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        // Aplicar filtro de tipo
+        if (eventTypeFilter !== 'all') {
+          allEvents = allEvents.filter(e => e.type === eventTypeFilter);
+        }
 
         setTotalCount(allEvents.length);
 
@@ -328,7 +336,7 @@ function RecentEvents({ dateFilter, customDateFrom, customDateTo }: {
     };
 
     fetchRecentEvents();
-  }, [currentPage]);
+  }, [currentPage, eventTypeFilter]);
 
   const totalPages = Math.ceil(totalCount / itemsPerPage);
 
@@ -356,6 +364,24 @@ function RecentEvents({ dateFilter, customDateFrom, customDateTo }: {
 
   return (
     <div className="space-y-4">
+      {/* Filtro de Tipo de Evento */}
+      <div className="flex items-center gap-3">
+        <span className="text-sm font-medium">Tipo de Evento:</span>
+        <Select value={eventTypeFilter} onValueChange={(value: EventTypeFilter) => {
+          setEventTypeFilter(value);
+          setCurrentPage(1); // Reset para primeira página ao mudar filtro
+        }}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            <SelectItem value="lead">Lead Events</SelectItem>
+            <SelectItem value="purchase">Purchase Events</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="space-y-3">
         {events.map((event, index) => (
           <div
