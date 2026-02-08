@@ -14,138 +14,108 @@ export type Database = {
   }
   public: {
     Tables: {
-      events: {
-        Row: {
-          created_at: string | null
-          event_name: string
-          event_type: string
-          id: string
-          response_data: Json | null
-          status: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          event_name: string
-          event_type: string
-          id?: string
-          response_data?: Json | null
-          status?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          event_name?: string
-          event_type?: string
-          id?: string
-          response_data?: Json | null
-          status?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      meta_credentials: {
-        Row: {
-          access_token: string
-          created_at: string | null
-          id: string
-          page_id: string | null
-          pixel_id: string
-          updated_at: string | null
-          user_id: string
-        }
-        Insert: {
-          access_token: string
-          created_at?: string | null
-          id?: string
-          page_id?: string | null
-          pixel_id: string
-          updated_at?: string | null
-          user_id: string
-        }
-        Update: {
-          access_token?: string
-          created_at?: string | null
-          id?: string
-          page_id?: string | null
-          pixel_id?: string
-          updated_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          client_supabase_key: string | null
-          client_supabase_url: string | null
-          created_at: string | null
-          email: string | null
-          id: string
-          updated_at: string | null
-        }
-        Insert: {
-          client_supabase_key?: string | null
-          client_supabase_url?: string | null
-          created_at?: string | null
-          email?: string | null
-          id: string
-          updated_at?: string | null
-        }
-        Update: {
-          client_supabase_key?: string | null
-          client_supabase_url?: string | null
-          created_at?: string | null
-          email?: string | null
-          id?: string
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      user_roles: {
+      client_login: {
         Row: {
           created_at: string
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          email: string | null
+          id: number
+          senha: string | null
         }
         Insert: {
           created_at?: string
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
+          email?: string | null
+          id?: number
+          senha?: string | null
         }
         Update: {
           created_at?: string
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
+          email?: string | null
+          id?: number
+          senha?: string | null
         }
         Relationships: []
       }
-      webhook_urls: {
+      credenciais: {
         Row: {
-          created_at: string | null
-          created_by_admin: boolean | null
-          id: string
-          updated_at: string | null
-          user_id: string
-          webhook_url: string
+          access_token: string | null
+          created_at: string
+          id: number
+          link_instrucao: string | null
+          page_id: number | null
+          pixel_id: number | null
+          webhook: string | null
         }
         Insert: {
-          created_at?: string | null
-          created_by_admin?: boolean | null
-          id?: string
-          updated_at?: string | null
-          user_id: string
-          webhook_url: string
+          access_token?: string | null
+          created_at?: string
+          id?: number
+          link_instrucao?: string | null
+          page_id?: number | null
+          pixel_id?: number | null
+          webhook?: string | null
         }
         Update: {
-          created_at?: string | null
-          created_by_admin?: boolean | null
-          id?: string
-          updated_at?: string | null
-          user_id?: string
-          webhook_url?: string
+          access_token?: string | null
+          created_at?: string
+          id?: number
+          link_instrucao?: string | null
+          page_id?: number | null
+          pixel_id?: number | null
+          webhook?: string | null
+        }
+        Relationships: []
+      }
+      eventos_lead: {
+        Row: {
+          access_token: string | null
+          created_at: string
+          ctw_acl_id: string | null
+          id: number
+          numero: number | null
+          page_id: number | null
+          pixel_id: number | null
+        }
+        Insert: {
+          access_token?: string | null
+          created_at?: string
+          ctw_acl_id?: string | null
+          id?: number
+          numero?: number | null
+          page_id?: number | null
+          pixel_id?: number | null
+        }
+        Update: {
+          access_token?: string | null
+          created_at?: string
+          ctw_acl_id?: string | null
+          id?: number
+          numero?: number | null
+          page_id?: number | null
+          pixel_id?: number | null
+        }
+        Relationships: []
+      }
+      purchase_events: {
+        Row: {
+          cliente_name: string | null
+          created_at: string
+          fbtrace: string | null
+          id: number
+          pixel_id: number | null
+        }
+        Insert: {
+          cliente_name?: string | null
+          created_at?: string
+          fbtrace?: string | null
+          id?: number
+          pixel_id?: number | null
+        }
+        Update: {
+          cliente_name?: string | null
+          created_at?: string
+          fbtrace?: string | null
+          id?: number
+          pixel_id?: number | null
         }
         Relationships: []
       }
@@ -154,16 +124,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      app_role: "admin" | "user"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -290,8 +254,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      app_role: ["admin", "user"],
-    },
+    Enums: {},
   },
 } as const

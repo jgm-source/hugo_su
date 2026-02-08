@@ -2,9 +2,8 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { supabase } from '@/integrations/supabase/client';
 
 interface User {
-  id: string;
-  email: string;
-  senha: string;
+  id: number;
+  email: string | null;
   created_at?: string;
 }
 
@@ -41,9 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      // Buscar usuário por email na tabela Client_login
+      // Buscar usuário por email na tabela client_login
       const { data: userData, error } = await supabase
-        .from('Client_login')
+        .from('client_login')
         .select('*')
         .eq('email', email)
         .single();
@@ -73,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Verificar se email já existe
       const { data: existingUser } = await supabase
-        .from('Client_login')
+        .from('client_login')
         .select('id')
         .eq('email', email)
         .single();
@@ -84,7 +83,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Inserir novo usuário
       const { data, error } = await supabase
-        .from('Client_login')
+        .from('client_login')
         .insert({
           email,
           senha: password
@@ -119,7 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { error } = await supabase
-        .from('Client_login')
+        .from('client_login')
         .update(data)
         .eq('id', user.id);
 
@@ -142,7 +141,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       const { data: userData, error } = await supabase
-        .from('Client_login')
+        .from('client_login')
         .select('*')
         .eq('id', user.id)
         .single();

@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "supabase-mcp-server": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@supabase/mcp-server-supabase@latest",
+        "--access-token",
+        "sbp_8c3a12de4c3fd153e971bc9dc83e88864c2e2b2e"
+      ],
+      "env": {},
+      "disabled": false,
+      "autoApprove": [
+        "list_projects",
+        "list_tables",
+        "get_publishable_keys",
+        "get_project_url",
+        "generate_typescript_types"
+      ]
+    }
+  }
+}
