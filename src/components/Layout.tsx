@@ -1,7 +1,6 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useAdmin } from '@/hooks/useAdmin';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { 
@@ -10,8 +9,7 @@ import {
   LogOut, 
   Activity,
   Menu,
-  X,
-  Shield
+  X
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -29,17 +27,15 @@ interface NavItem {
 const navItems: NavItem[] = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/configuracao', label: 'Configuração', icon: Settings },
-  { href: '/admin/webhooks', label: 'Admin', icon: Shield, adminOnly: true },
 ];
 
 export function Layout({ children }: LayoutProps) {
   const { signOut, user } = useAuth();
-  const { isAdmin } = useAdmin();
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const filteredNavItems = navItems.filter(item => !item.adminOnly || isAdmin);
+  const filteredNavItems = navItems;
 
   const handleSignOut = async () => {
     await signOut();

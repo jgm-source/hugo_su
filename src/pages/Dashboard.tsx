@@ -4,10 +4,13 @@ import { Layout } from '@/components/Layout';
 import { MetricCard } from '@/components/MetricCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar as CalendarComponent } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { Users, ShoppingCart, Settings, RefreshCw, Calendar } from 'lucide-react';
-import { format } from 'date-fns';
+import { Users, ShoppingCart, Settings, RefreshCw, Calendar, CalendarRange } from 'lucide-react';
+import { format, subDays, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 interface EventCounts {
@@ -15,52 +18,101 @@ interface EventCounts {
   conversions: number;
 }
 
+type DateFilter = 'today' | 'yesterday' | '7days' | '30days' | 'custom';
+
 export default function Dashboard() {
   const { user } = useAuth();
   const [counts, setCounts] = useState<EventCounts>({ leads: 0, conversions: 0 });
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasCredentials, setHasCredentials] = useState(false);
+  const [dateFilter, setDateFilter] = useState<DateFilter>('today');
+  const [customDateFrom, setCustomDateFrom] = useState<Date | undefined>(undefined);
+  const [customDateTo, setCustomDateTo] = useState<Date | undefined>(undefined);
+
+  const getDateRange = () => {
+    const now = new Date();
+    let startDate: Date;
+    let endDate: Date = endOfDay(now);
+
+    switch (dateFilter) {
+      case 'today':
+        startDate = startOfDay(now);
+        break;
+      case 'yesterday':
+        startDate = startOfDay(subDays(now, 1));
+        endDate = endOfDay(subDays(now, 1));
+        break;
+      case '7days':
+        startDate = startOfDay(subDays(now, 7));
+        break;
+      case '30days':
+        startDate = startOfDay(subDays(now, 30));
+        break;
+      case 'custom':
+        if (customDateFrom && customDateTo) {
+          startDate = startOfDay(customDateFrom);
+          endDate = endOfDay(customDateTo);
+        } else {
+          startDate = startOfDay(now);
+        }
+        break;
+      default:
+        startDate = startOfDay(now);
+    }
+
+    return { startDate, endDate };
+  };
+
+  const getDateLabel = () => {
+    const { startDate, endDate } = getDateRange();
+    
+    if (dateFilter === 'today') {
+      return `Eventos de hoje, ${format(startDate, "dd 'de' MMMM", { locale: ptBR })}`;
+    } else if (dateFilter === 'yesterday') {
+      return `Eventos de ontem, ${format(startDate, "dd 'de' MMMM", { locale: ptBR })}`;
+    } else if (dateFilter === '7days') {
+      return `Últimos 7 dias (${format(startDate, 'dd/MM')} - ${format(endDate, 'dd/MM')})`;
+    } else if (dateFilter === '30days') {
+      return `Últimos 30 dias (${format(startDate, 'dd/MM')} - ${format(endDate, 'dd/MM')})`;
+    } else if (dateFilter === 'custom' && customDateFrom && customDateTo) {
+      return `${format(customDateFrom, 'dd/MM/yyyy')} - ${format(customDateTo, 'dd/MM/yyyy')}`;
+    }
+    return 'Selecione um período';
+  };
 
   const fetchEventCounts = async () => {
-    if (!user) return;
-
     setIsRefreshing(true);
     try {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
+      const { startDate, endDate } = getDateRange();
 
-      // Fetch leads count
+      // Fetch leads count from "Eventos de Lead"
       const { count: leadsCount } = await supabase
-        .from('events')
+        .from('Eventos de Lead')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('event_type', 'lead')
-        .eq('status', 'success')
-        .gte('created_at', today.toISOString());
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
 
-      // Fetch conversions count
+      // Fetch conversions count from "Purchase Events"
       const { count: conversionsCount } = await supabase
-        .from('events')
+        .from('Purchase Events')
         .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .eq('event_type', 'conversion')
-        .eq('status', 'success')
-        .gte('created_at', today.toISOString());
+        .gte('created_at', startDate.toISOString())
+        .lte('created_at', endDate.toISOString());
 
       setCounts({
         leads: leadsCount || 0,
         conversions: conversionsCount || 0,
       });
 
-      // Check if user has credentials configured
+      // Check if credentials are configured
       const { data: credentials } = await supabase
-        .from('meta_credentials')
-        .select('id')
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .from('Credenciais')
+        .select('*')
+        .limit(1)
+        .single();
 
-      setHasCredentials(!!credentials);
+      setHasCredentials(!!(credentials && credentials['ID do Pixel'] && credentials['Acess_Token']));
       setLastUpdate(new Date());
     } catch (error) {
       console.error('Error fetching event counts:', error);
@@ -71,11 +123,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     fetchEventCounts();
-    
-    // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchEventCounts, 30000);
-    return () => clearInterval(interval);
-  }, [user]);
+  }, [user, dateFilter, customDateFrom, customDateTo]);
 
   return (
     <Layout>
@@ -98,104 +146,197 @@ export default function Dashboard() {
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Atualizar
             </Button>
-            <Button asChild className="gradient-primary">
-              <Link to="/configuracao">
-                <Settings className="h-4 w-4 mr-2" />
-                Configurar Tokens
-              </Link>
-            </Button>
           </div>
         </div>
 
-        {/* Date indicator */}
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-4 w-4" />
-          <span>
-            Eventos de hoje, {format(new Date(), "dd 'de' MMMM", { locale: ptBR })}
-          </span>
-          <span className="text-xs">
-            • Última atualização: {format(lastUpdate, 'HH:mm:ss')}
-          </span>
-        </div>
+        {/* Date Filter */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-muted-foreground" />
+                <span className="text-sm font-medium">Período:</span>
+              </div>
+              <Select value={dateFilter} onValueChange={(value: DateFilter) => setDateFilter(value)}>
+                <SelectTrigger className="w-[200px]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="today">Hoje</SelectItem>
+                  <SelectItem value="yesterday">Ontem</SelectItem>
+                  <SelectItem value="7days">Últimos 7 dias</SelectItem>
+                  <SelectItem value="30days">Últimos 30 dias</SelectItem>
+                  <SelectItem value="custom">Personalizado</SelectItem>
+                </SelectContent>
+              </Select>
 
-        {/* Metrics Grid */}
+              {dateFilter === 'custom' && (
+                <div className="flex gap-2 items-center">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <CalendarRange className="h-4 w-4 mr-2" />
+                        {customDateFrom ? format(customDateFrom, 'dd/MM/yyyy') : 'Data inicial'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={customDateFrom}
+                        onSelect={setCustomDateFrom}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <span className="text-muted-foreground">até</span>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <CalendarRange className="h-4 w-4 mr-2" />
+                        {customDateTo ? format(customDateTo, 'dd/MM/yyyy') : 'Data final'}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <CalendarComponent
+                        mode="single"
+                        selected={customDateTo}
+                        onSelect={setCustomDateTo}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+            </div>
+            <p className="text-sm text-muted-foreground mt-2">
+              {getDateLabel()}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Configuration Alert */}
+        {!hasCredentials && (
+          <Card className="border-warning bg-warning/5">
+            <CardContent className="pt-6">
+              <div className="flex items-start gap-4">
+                <Settings className="h-5 w-5 text-warning mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-semibold text-warning">Configuração Necessária</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Configure suas credenciais da Meta para começar a receber eventos de conversão.
+                  </p>
+                  <Link to="/configuracao">
+                    <Button variant="outline" size="sm" className="mt-3">
+                      Ir para Configuração
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Metrics */}
         <div className="grid gap-6 md:grid-cols-2">
           <MetricCard
             title="Eventos de Lead"
             value={counts.leads}
+            description={getDateLabel()}
             icon={Users}
-            description="Total enviados hoje"
-            variant="lead"
+            trend={0}
           />
           <MetricCard
-            title="Eventos de Conversão"
+            title="Purchase Events"
             value={counts.conversions}
+            description={getDateLabel()}
             icon={ShoppingCart}
-            description="Total enviados hoje"
-            variant="conversion"
+            trend={0}
           />
         </div>
-
-        {/* Configuration Alert */}
-        {!hasCredentials && (
-          <Card className="border-warning/50 bg-warning/5 animate-slide-up">
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                ⚠️ Configuração Pendente
-              </CardTitle>
-              <CardDescription>
-                Para começar a receber eventos, você precisa configurar suas credenciais da Meta.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild>
-                <Link to="/configuracao">
-                  <Settings className="h-4 w-4 mr-2" />
-                  Configurar Agora
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        )}
 
         {/* Recent Activity */}
         <Card>
           <CardHeader>
             <CardTitle>Atividade Recente</CardTitle>
             <CardDescription>
-              Últimos eventos processados
+              Todos os eventos processados (mais recentes primeiro)
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <RecentEvents userId={user?.id} />
+            <RecentEvents dateFilter={dateFilter} customDateFrom={customDateFrom} customDateTo={customDateTo} />
           </CardContent>
         </Card>
+
+        {/* Last Update */}
+        <div className="text-center text-sm text-muted-foreground">
+          Última atualização: {format(lastUpdate, "dd/MM/yyyy 'às' HH:mm:ss")}
+        </div>
       </div>
     </Layout>
   );
 }
 
-function RecentEvents({ userId }: { userId?: string }) {
+function RecentEvents({ dateFilter, customDateFrom, customDateTo }: { 
+  dateFilter: DateFilter;
+  customDateFrom?: Date;
+  customDateTo?: Date;
+}) {
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
-    if (!userId) return;
-
     const fetchRecentEvents = async () => {
-      const { data } = await supabase
-        .from('events')
-        .select('*')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: false })
-        .limit(5);
+      setLoading(true);
 
-      setEvents(data || []);
-      setLoading(false);
+      try {
+        // Buscar eventos de lead
+        const { data: leadEvents } = await supabase
+          .from('Eventos de Lead')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        // Buscar eventos de purchase
+        const { data: purchaseEvents } = await supabase
+          .from('Purchase Events')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(100);
+
+        // Combinar e ordenar todos os eventos
+        const allEvents = [
+          ...(leadEvents || []).map(e => ({ ...e, type: 'lead' })),
+          ...(purchaseEvents || []).map(e => ({ ...e, type: 'purchase' }))
+        ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+        setTotalCount(allEvents.length);
+
+        // Paginar
+        const from = (currentPage - 1) * itemsPerPage;
+        const to = from + itemsPerPage;
+        setEvents(allEvents.slice(from, to));
+      } catch (error) {
+        console.error('Erro ao buscar eventos:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     fetchRecentEvents();
-  }, [userId]);
+  }, [currentPage]);
+
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+
+  const goToPage = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   if (loading) {
     return (
@@ -214,29 +355,116 @@ function RecentEvents({ userId }: { userId?: string }) {
   }
 
   return (
-    <div className="space-y-3">
-      {events.map((event) => (
-        <div
-          key={event.id}
-          className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
-        >
-          <div className="flex items-center gap-3">
-            <div className={`w-2 h-2 rounded-full ${
-              event.status === 'success' ? 'bg-success' : 
-              event.status === 'failed' ? 'bg-destructive' : 'bg-warning'
-            }`} />
-            <div>
-              <p className="text-sm font-medium">{event.event_name}</p>
-              <p className="text-xs text-muted-foreground">
-                {event.event_type === 'lead' ? 'Lead' : 'Conversão'}
-              </p>
+    <div className="space-y-4">
+      <div className="space-y-3">
+        {events.map((event, index) => (
+          <div
+            key={`${event.type}-${event.id}-${index}`}
+            className="flex flex-col gap-2 p-4 rounded-lg bg-muted/50 border border-border/50"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${event.type === 'lead' ? 'bg-blue-500' : 'bg-green-500'}`} />
+                <span className="font-medium">
+                  {event.type === 'lead' ? 'Lead Event' : 'Purchase Event'}
+                </span>
+              </div>
+              <span className="text-sm text-muted-foreground">
+                {format(new Date(event.created_at), "dd/MM/yyyy HH:mm")}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              {event.type === 'lead' ? (
+                <>
+                  <div>
+                    <span className="text-muted-foreground">Telefone: </span>
+                    <span>{event.Numero || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Pixel ID: </span>
+                    <span>{event['Pixel ID'] || 'N/A'}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">CTWaclid: </span>
+                    <span className="font-mono text-xs">{event.CTWaclid || 'N/A'}</span>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <span className="text-muted-foreground">Cliente: </span>
+                    <span>{event.Cliente_Name || 'N/A'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">Pixel ID: </span>
+                    <span>{event['ID do pixel'] || 'N/A'}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground">FB Trace: </span>
+                    <span className="font-mono text-xs">{event.fbtrace || 'N/A'}</span>
+                  </div>
+                </>
+              )}
             </div>
           </div>
-          <span className="text-xs text-muted-foreground">
-            {format(new Date(event.created_at), 'dd/MM HH:mm')}
-          </span>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-4 border-t">
+          <div className="text-sm text-muted-foreground">
+            Mostrando {((currentPage - 1) * itemsPerPage) + 1} a {Math.min(currentPage * itemsPerPage, totalCount)} de {totalCount} eventos
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(1)}
+              disabled={currentPage === 1}
+            >
+              Primeira
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Anterior
+            </Button>
+            {[...Array(Math.min(5, totalPages))].map((_, i) => {
+              const pageNum = i + 1;
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => goToPage(pageNum)}
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Próxima
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => goToPage(totalPages)}
+              disabled={currentPage === totalPages}
+            >
+              Última
+            </Button>
+          </div>
         </div>
-      ))}
+      )}
     </div>
   );
 }

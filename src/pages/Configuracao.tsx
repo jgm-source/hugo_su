@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '@/components/Layout';
-import { WebhookInstructions } from '@/components/WebhookInstructions';
-import { ClientSupabaseConfig } from '@/components/ClientSupabaseConfig';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,72 +7,59 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
-import { Eye, EyeOff, Save, TestTube, Copy, Check, Loader2, Link as LinkIcon, AlertCircle } from 'lucide-react';
+import { Eye, EyeOff, Save, Copy, Check, Loader2, Link as LinkIcon, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-interface MetaCredentials {
-  pixel_id: string;
-  page_id: string;
-  access_token: string;
+
+interface Credentials {
+  id?: number;
+  'ID do Pixel': string;
+  'Acess_Token': string;
+  'Webhook': string;
 }
 
 export default function Configuracao() {
   const { user } = useAuth();
   const { toast } = useToast();
   
-  const [credentials, setCredentials] = useState<MetaCredentials>({
-    pixel_id: '',
-    page_id: '',
-    access_token: '',
+  const [credentials, setCredentials] = useState<Credentials>({
+    'ID do Pixel': '',
+    'Acess_Token': '',
+    'Webhook': '',
   });
   const [showToken, setShowToken] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
-  const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [hasExistingCredentials, setHasExistingCredentials] = useState(false);
+  const [copiedToken, setCopiedToken] = useState(false);
+  const [credentialsId, setCredentialsId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!user) return;
+    fetchCredentials();
+  }, []);
 
-    // Fetch existing credentials
-    const fetchCredentials = async () => {
-      const { data } = await supabase
-        .from('meta_credentials')
+  const fetchCredentials = async () => {
+    try {
+      // Buscar credenciais da tabela Credenciais (pegar o primeiro registro)
+      const { data, error } = await supabase
+        .from('Credenciais')
         .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+        .limit(1)
+        .single();
 
       if (data) {
         setCredentials({
-          pixel_id: data.pixel_id,
-          page_id: data.page_id || '',
-          access_token: data.access_token,
+          'ID do Pixel': data['ID do Pixel']?.toString() || '',
+          'Acess_Token': data['Acess_Token'] || '',
+          'Webhook': data['Webhook'] || '',
         });
-        setHasExistingCredentials(true);
+        setCredentialsId(data.id);
       }
-    };
-
-    // Fetch webhook URL
-    const fetchWebhook = async () => {
-      const { data } = await supabase
-        .from('webhook_urls')
-        .select('webhook_url')
-        .eq('user_id', user.id)
-        .maybeSingle();
-
-      if (data) {
-        setWebhookUrl(data.webhook_url);
-      }
-    };
-
-    fetchCredentials();
-    fetchWebhook();
-  }, [user]);
+    } catch (error: any) {
+      console.error('Erro ao buscar credenciais:', error);
+    }
+  };
 
   const handleSave = async () => {
-    if (!user) return;
-
-    if (!credentials.pixel_id || !credentials.access_token) {
+    if (!credentials['ID do Pixel'] || !credentials['Acess_Token']) {
       toast({
         title: 'Campos obrigatórios',
         description: 'Pixel ID e Access Token são obrigatórios.',
@@ -85,29 +70,32 @@ export default function Configuracao() {
 
     setIsSaving(true);
     try {
-      if (hasExistingCredentials) {
+      if (credentialsId) {
+        // Atualizar credenciais existentes
         const { error } = await supabase
-          .from('meta_credentials')
+          .from('Credenciais')
           .update({
-            pixel_id: credentials.pixel_id,
-            page_id: credentials.page_id || null,
-            access_token: credentials.access_token,
+            'ID do Pixel': parseFloat(credentials['ID do Pixel']),
+            'Acess_Token': credentials['Acess_Token'],
+            'Webhook': credentials['Webhook'],
           })
-          .eq('user_id', user.id);
+          .eq('id', credentialsId);
 
         if (error) throw error;
       } else {
-        const { error } = await supabase
-          .from('meta_credentials')
+        // Inserir novas credenciais
+        const { data, error } = await supabase
+          .from('Credenciais')
           .insert({
-            user_id: user.id,
-            pixel_id: credentials.pixel_id,
-            page_id: credentials.page_id || null,
-            access_token: credentials.access_token,
-          });
+            'ID do Pixel': parseFloat(credentials['ID do Pixel']),
+            'Acess_Token': credentials['Acess_Token'],
+            'Webhook': credentials['Webhook'],
+          })
+          .select()
+          .single();
 
         if (error) throw error;
-        setHasExistingCredentials(true);
+        if (data) setCredentialsId(data.id);
       }
 
       toast({
@@ -125,51 +113,26 @@ export default function Configuracao() {
     }
   };
 
-  const handleTestConnection = async () => {
-    if (!credentials.pixel_id || !credentials.access_token) {
-      toast({
-        title: 'Campos obrigatórios',
-        description: 'Preencha o Pixel ID e Access Token para testar.',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsTesting(true);
-    try {
-      // Test the Meta API connection
-      const response = await fetch(
-        `https://graph.facebook.com/v18.0/${credentials.pixel_id}?access_token=${credentials.access_token}`
-      );
-      
-      if (response.ok) {
-        toast({
-          title: 'Conexão bem-sucedida!',
-          description: 'Suas credenciais estão válidas.',
-        });
-      } else {
-        const error = await response.json();
-        throw new Error(error.error?.message || 'Credenciais inválidas');
-      }
-    } catch (error: any) {
-      toast({
-        title: 'Falha na conexão',
-        description: error.message,
-        variant: 'destructive',
-      });
-    } finally {
-      setIsTesting(false);
-    }
-  };
-
   const copyWebhookUrl = () => {
-    if (webhookUrl) {
-      navigator.clipboard.writeText(webhookUrl);
+    if (credentials['Webhook']) {
+      navigator.clipboard.writeText(credentials['Webhook']);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
       toast({
         title: 'Copiado!',
         description: 'URL do webhook copiada para a área de transferência.',
+      });
+    }
+  };
+
+  const copyAccessToken = () => {
+    if (credentials['Acess_Token']) {
+      navigator.clipboard.writeText(credentials['Acess_Token']);
+      setCopiedToken(true);
+      setTimeout(() => setCopiedToken(false), 2000);
+      toast({
+        title: 'Copiado!',
+        description: 'Access Token copiado para a área de transferência.',
       });
     }
   };
@@ -203,39 +166,53 @@ export default function Configuracao() {
               <Input
                 id="pixel_id"
                 placeholder="Ex: 123456789012345"
-                value={credentials.pixel_id}
-                onChange={(e) => setCredentials({ ...credentials, pixel_id: e.target.value })}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="page_id">Page ID (opcional)</Label>
-              <Input
-                id="page_id"
-                placeholder="Ex: 123456789012345"
-                value={credentials.page_id}
-                onChange={(e) => setCredentials({ ...credentials, page_id: e.target.value })}
+                value={credentials['ID do Pixel']}
+                onChange={(e) => setCredentials({ ...credentials, 'ID do Pixel': e.target.value })}
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="access_token">Access Token *</Label>
-              <div className="relative">
-                <Input
-                  id="access_token"
-                  type={showToken ? 'text' : 'password'}
-                  placeholder="EAAxxxxxxxxxx..."
-                  value={credentials.access_token}
-                  onChange={(e) => setCredentials({ ...credentials, access_token: e.target.value })}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowToken(!showToken)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    id="access_token"
+                    type={showToken ? 'text' : 'password'}
+                    placeholder="EAAxxxxxxxxxx..."
+                    value={credentials['Acess_Token']}
+                    onChange={(e) => setCredentials({ ...credentials, 'Acess_Token': e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowToken(!showToken)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={copyAccessToken}
+                  disabled={!credentials['Acess_Token']}
+                  className="shrink-0"
                 >
-                  {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
+                  {copiedToken ? (
+                    <Check className="h-4 w-4 text-success" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
               </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="webhook">Webhook URL</Label>
+              <Input
+                id="webhook"
+                placeholder="https://seu-webhook.com/endpoint"
+                value={credentials['Webhook']}
+                onChange={(e) => setCredentials({ ...credentials, 'Webhook': e.target.value })}
+              />
             </div>
 
             <div className="flex gap-3 pt-2">
@@ -247,32 +224,24 @@ export default function Configuracao() {
                 )}
                 Salvar Configurações
               </Button>
-              <Button variant="outline" onClick={handleTestConnection} disabled={isTesting}>
-                {isTesting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <TestTube className="h-4 w-4 mr-2" />
-                )}
-                Testar Conexão
-              </Button>
             </div>
           </CardContent>
         </Card>
 
         {/* Webhook URL Card */}
-        <Card className="animate-slide-up" style={{ animationDelay: '100ms' }}>
-          <CardHeader>
-            <CardTitle>URL do Webhook</CardTitle>
-            <CardDescription>
-              Use esta URL para configurar o webhook na sua plataforma de pagamentos
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {webhookUrl ? (
-              <>
+        {credentials['Webhook'] && (
+          <Card className="animate-slide-up" style={{ animationDelay: '100ms' }}>
+            <CardHeader>
+              <CardTitle>URL do Webhook Configurada</CardTitle>
+              <CardDescription>
+                Use esta URL para configurar o webhook na sua plataforma de pagamentos
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-4">
                 <div className="flex gap-2">
                   <Input
-                    value={webhookUrl}
+                    value={credentials['Webhook']}
                     readOnly
                     className="font-mono text-sm bg-muted"
                   />
@@ -284,21 +253,16 @@ export default function Configuracao() {
                     )}
                   </Button>
                 </div>
-                <WebhookInstructions />
-              </>
-            ) : (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Webhook não configurado. Entre em contato com o suporte para obter sua URL personalizada.
-                </AlertDescription>
-              </Alert>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Client Supabase Configuration */}
-        <ClientSupabaseConfig />
+                <Alert className="bg-success/10 border-success/20">
+                  <Check className="h-4 w-4 text-success" />
+                  <AlertDescription className="text-success">
+                    Webhook conectado e pronto para receber eventos
+                  </AlertDescription>
+                </Alert>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </Layout>
   );

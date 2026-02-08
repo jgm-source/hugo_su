@@ -9,7 +9,6 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Configuracao from "./pages/Configuracao";
-import AdminWebhooks from "./pages/AdminWebhooks";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,14 +37,6 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Configuracao />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/webhooks"
-        element={
-          <ProtectedRoute>
-            <AdminWebhooks />
           </ProtectedRoute>
         }
       />

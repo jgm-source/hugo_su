@@ -1,73 +1,97 @@
-# Welcome to your Lovable project
+# Meta Events Manager
 
-## Project info
+Sistema de gerenciamento de eventos de conversão da Meta (Facebook). Monitore leads e purchase events em tempo real.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+## 🚀 Funcionalidades
 
-## How can I edit this code?
+- ✅ Dashboard em tempo real com métricas de leads e conversões
+- ✅ Filtros de data (Hoje, Ontem, Últimos 7/30 dias, Personalizado)
+- ✅ Paginação completa para visualizar todos os eventos
+- ✅ Configuração de credenciais da Meta (Pixel ID, Access Token)
+- ✅ Gerenciamento de webhooks
+- ✅ Sistema de autenticação simples
+- ✅ Painel administrativo
 
-There are several ways of editing your application.
+## 🛠️ Tecnologias
 
-**Use Lovable**
+- **Frontend**: React 18 + TypeScript + Vite
+- **UI**: shadcn/ui + Tailwind CSS
+- **Backend**: Supabase (PostgreSQL + Auth)
+- **Roteamento**: React Router v6
+- **Estado**: TanStack Query
+- **Testes**: Vitest
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+## 📦 Instalação
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
+# 1. Clone o repositório
 git clone <YOUR_GIT_URL>
 
-# Step 2: Navigate to the project directory.
+# 2. Entre no diretório
 cd <YOUR_PROJECT_NAME>
 
-# Step 3: Install the necessary dependencies.
-npm i
+# 3. Instale as dependências
+npm install
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 4. Configure as variáveis de ambiente
+# Copie o arquivo .env.example para .env e configure suas credenciais do Supabase
+
+# 5. Inicie o servidor de desenvolvimento
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+## 🔧 Scripts Disponíveis
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+npm run dev          # Inicia o servidor de desenvolvimento
+npm run build        # Build para produção
+npm run build:dev    # Build em modo desenvolvimento
+npm run lint         # Executa o linter
+npm run preview      # Preview do build de produção
+npm run test         # Executa os testes
+npm run test:watch   # Executa os testes em modo watch
+```
 
-**Use GitHub Codespaces**
+## 📊 Estrutura do Banco de Dados
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### Tabela `users`
+Tabela única com todos os dados do usuário:
+- Autenticação (email, senha, nome)
+- Credenciais da Meta (pixel_id, page_id, access_token)
+- Webhook (webhook_url)
+- Permissões (role: admin/user)
 
-## What technologies are used for this project?
+### Tabela `user_events`
+Eventos de leads e conversões:
+- Tipo de evento (lead/conversion)
+- Status (success/failed/pending)
+- Dados do cliente (telefone, ctwaclid, page_id)
+- Timestamps
 
-This project is built with:
+## 🔐 Credenciais Padrão
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+Email: admin@sistema.com
+Senha: admin123
+```
 
-## How can I deploy this project?
+**⚠️ IMPORTANTE: Troque essas credenciais em produção!**
 
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
+## 📝 Documentação Adicional
 
-## Can I connect a custom domain to my Lovable project?
+- `ESTRUTURA_BANCO.md` - Documentação completa da estrutura do banco
+- `EXEMPLO_AUTENTICACAO.md` - Guia de implementação da autenticação
+- `CREDENCIAIS_TESTE.md` - Credenciais e instruções de teste
+- `IMPORTAR_DADOS_CTWACLID.md` - Guia de importação de dados
 
-Yes, you can!
+## 🚀 Deploy
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+Este projeto pode ser deployado em qualquer plataforma que suporte aplicações React:
+- Vercel
+- Netlify
+- AWS Amplify
+- GitHub Pages
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+## 📄 Licença
+
+Este projeto é privado e proprietário.
