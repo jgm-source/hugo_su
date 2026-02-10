@@ -1,81 +1,142 @@
-# ✅ Checklist de Correções - COMPLETO
+# Checklist de Correções - Projeto Supabase + React
 
-## Status: TODOS OS ITENS VERIFICADOS E CORRIGIDOS
+## ✅ ESTRUTURA REAL DO BANCO DE DADOS
 
-### 1. ✅ Configuração Inicial
-- **Dependências instaladas**: npm install executado com sucesso (500 pacotes)
-- **Arquivo .env verificado**: Credenciais do Supabase configuradas corretamente
-  - Project ID: pklzmfhjestbvrzithql
-  - URL: https://pklzmfhjestbvrzithql.supabase.co
-  - Publishable Key: Configurado
+### Tabelas Existentes (Verificadas via MCP)
 
-### 2. ✅ Sincronização de Nomes (Case-Sensitive)
-**TODAS AS TABELAS E COLUNAS JÁ ESTÃO CORRETAS EM MINÚSCULAS!**
+#### 1. **client_login** (Autenticação)
+- `id`: bigint (PK)
+- `created_at`: timestamp
+- `email`: varchar
+- `senha`: varchar
+- **RLS**: Desabilitado
+- **Registros**: 1
 
-#### Tabelas Verificadas:
-- ✅ `client_login` (correto)
-- ✅ `credenciais` (correto)
-- ✅ `eventos_lead` (correto)
-- ✅ `purchase_events` (correto)
+#### 2. **credenciais** (Credenciais da Meta)
+- `id`: bigint (PK)
+- `created_at`: timestamp
+- `pixel_id`: numeric
+- `access_token`: varchar
+- `webhook`: varchar
+- `page_id`: numeric
+- `link_instrucao`: text
+- **RLS**: Desabilitado
+- **Registros**: 1
 
-#### Colunas Verificadas:
-**client_login:**
-- ✅ id, created_at, email, senha
+#### 3. **eventos_lead** (Eventos de Lead)
+- `id`: bigint (PK)
+- `created_at`: timestamp
+- `numero`: numeric
+- `page_id`: numeric
+- `ctw_acl_id`: varchar
+- `pixel_id`: numeric
+- `access_token`: varchar
+- **RLS**: Desabilitado
+- **Registros**: 0
 
-**credenciais:**
-- ✅ id, created_at, pixel_id, page_id, access_token, webhook, link_instrucao
+#### 4. **purchase_events** (Eventos de Compra)
+- `id`: bigint (PK)
+- `created_at`: timestamp
+- `pixel_id`: numeric
+- `fbtrace`: varchar
+- `cliente_name`: text
+- **RLS**: Desabilitado
+- **Registros**: 0
 
-**eventos_lead:**
-- ✅ id, created_at, numero, page_id, ctw_acl_id, pixel_id, access_token
+#### 5. **Track Encap Wpp** (Tracking WhatsApp)
+- `id`: bigint (PK)
+- `created_at`: timestamp
+- `phone`: numeric
+- `ctwaClid`: varchar
+- `page_id`: numeric
+- **RLS**: Habilitado
+- **Registros**: 41
 
-**purchase_events:**
-- ✅ id, created_at, pixel_id, fbtrace, cliente_name
+## ✅ CORREÇÕES APLICADAS
 
-### 3. ✅ Types do Supabase
-- **Arquivo**: src/integrations/supabase/types.ts
-- **Status**: Types gerados e verificados via MCP
-- **Resultado**: Types já estavam atualizados e corretos
+### 1. Types do Supabase
+✅ Arquivo `src/integrations/supabase/types.ts` atualizado com as tabelas reais do banco
+✅ Todos os tipos correspondem exatamente à estrutura do banco
 
-### 4. ✅ Arquivos Corrigidos
+### 2. Código Mantido
+✅ `useAuth.tsx` - Usa autenticação customizada com tabela `client_login`
+✅ `Dashboard.tsx` - Busca de `eventos_lead` e `purchase_events`
+✅ `Configuracao.tsx` - Salva em `credenciais` com todos os campos
 
-#### useAuth.tsx
-- ✅ Todas as referências usam 'client_login' (minúsculo)
-- ✅ Nenhum erro de diagnóstico
+## 📋 CHECKLIST DE VERIFICAÇÃO
 
-#### Dashboard.tsx
-- ✅ Nomes de tabelas corretos: 'eventos_lead', 'purchase_events', 'credenciais'
-- ✅ Nomes de colunas corretos ao acessar dados
-- ✅ **CORRIGIDO**: Removido prop `trend` inexistente do MetricCard
-- ✅ Nenhum erro de diagnóstico
+### Antes de Iniciar
+- [ ] Instalar dependências: `npm install`
+- [ ] Verificar arquivo `.env` com credenciais corretas
+- [ ] Verificar MCP configurado com access token válido
 
-#### Configuracao.tsx
-- ✅ Interface Credentials com nomes corretos das colunas
-- ✅ Todos os insert, update, select com nomes corretos
-- ✅ Validações e acessos aos dados corretos
-- ✅ Nenhum erro de diagnóstico
+### Verificações de Código
+- [ ] Types do Supabase correspondem ao banco real
+- [ ] Nomes de tabelas em minúsculas: `client_login`, `credenciais`, `eventos_lead`, `purchase_events`
+- [ ] Nomes de colunas corretos: `pixel_id`, `page_id`, `access_token`, `ctw_acl_id`, etc.
+- [ ] IDs são números (`number`), não UUIDs
 
-### 5. ✅ Verificação Final
+### Testes Funcionais
+- [ ] Login funciona com email e senha
+- [ ] Dashboard exibe contadores de eventos
+- [ ] Configuração salva credenciais corretamente
+- [ ] Webhook URL é exibida (se configurada)
+- [ ] Link de instruções é exibido (se configurado)
+
+### Comandos Úteis
+
 ```bash
-# Diagnósticos TypeScript - TODOS LIMPOS
-✅ src/pages/Dashboard.tsx: No diagnostics found
-✅ src/pages/Configuracao.tsx: No diagnostics found
-✅ src/hooks/useAuth.tsx: No diagnostics found
-✅ src/components/MetricCard.tsx: No diagnostics found
-```
+# Verificar tipos
+npm run type-check
 
-### 6. ✅ Próximos Passos
-Para iniciar o servidor de desenvolvimento:
-```bash
+# Rodar diagnósticos
+# (usar getDiagnostics no Kiro)
+
+# Iniciar servidor de desenvolvimento
 npm run dev
+
+# Build de produção
+npm run build
 ```
 
-## Resumo das Correções Aplicadas
-1. ✅ Instalação de dependências (npm install)
-2. ✅ Verificação de credenciais do Supabase
-3. ✅ Confirmação de schema do banco (todas as tabelas/colunas em snake_case minúsculo)
-4. ✅ Verificação e atualização de types.ts
-5. ✅ Remoção de prop `trend` inválido no Dashboard.tsx
-6. ✅ Verificação de todos os arquivos principais sem erros TypeScript
+## 🔍 VERIFICAÇÃO VIA MCP
 
-## 🎉 Projeto Pronto para Uso!
-Todos os itens do checklist foram verificados e corrigidos. O projeto está sincronizado com o banco de dados Supabase e pronto para desenvolvimento.
+Para verificar a estrutura do banco:
+
+```javascript
+// Listar tabelas
+mcp_supabase_mcp_server_list_tables({
+  project_id: "kxddnogzupkvkxtfeiqv",
+  schemas: ["public"]
+})
+
+// Executar SQL
+mcp_supabase_mcp_server_execute_sql({
+  project_id: "kxddnogzupkvkxtfeiqv",
+  query: "SELECT * FROM client_login LIMIT 1"
+})
+```
+
+## ⚠️ IMPORTANTE
+
+1. **Não usar Supabase Auth**: O projeto usa autenticação customizada
+2. **IDs são números**: Não são UUIDs
+3. **RLS desabilitado**: Não há Row Level Security nas tabelas principais
+4. **Senhas em texto plano**: Armazenadas diretamente (não recomendado para produção)
+
+## 🚀 PRÓXIMOS PASSOS RECOMENDADOS
+
+1. **Segurança**:
+   - Considerar migrar para Supabase Auth
+   - Implementar hash de senhas
+   - Habilitar RLS nas tabelas
+
+2. **Funcionalidades**:
+   - Implementar webhook para receber eventos
+   - Adicionar validação de credenciais da Meta
+   - Criar logs de erros
+
+3. **Melhorias**:
+   - Adicionar testes automatizados
+   - Implementar paginação nos eventos
+   - Adicionar filtros avançados no dashboard
